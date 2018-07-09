@@ -100,7 +100,7 @@ typedef enum
     VCOM_OFF
 }eVcomStates_t;
 
-void _Error_Handler(char *, int);
+void _Error_Handler(const char *, int);
 
 
  /**

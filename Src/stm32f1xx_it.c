@@ -134,15 +134,6 @@ void VCOM_USART_IRQHandler(void)
     {
         uint8_t c = USART1->DR;
 
-        //echo typed character
-        USART1->DR = c;
-        while (!(USART1->SR & USART_SR_TC));
-        if (c == '\r')
-        {
-            USART1->DR = '\n';
-            while (!(USART1->SR & USART_SR_TC));
-        }
-
         vcom_handleByte(c);
     }
 }

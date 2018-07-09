@@ -58,6 +58,32 @@
 /* USB Device Core handle declaration */
 USBD_HandleTypeDef hUsbDeviceFS;
 
+uint8_t USBD_usbOK = 0;
+
+void stateChanged(uint8_t state)
+{
+	printf("USBD: State changed %d -", state);
+	switch(state)
+	{
+	case 1:
+		printf(" DEFAULT\n");
+		USBD_usbOK = 1;
+		break;
+	case 2:
+		printf(" ADDRESSED\n");
+		USBD_usbOK = 0;
+		break;
+	case 3:
+		printf(" CONFIGURED\n");
+		USBD_usbOK = 1;
+		break;
+	case 4:
+		printf(" SUSPENDED\n");
+		USBD_usbOK = 0;
+		break;
+	}
+}
+
 /* init function */                                        
 void MX_USB_DEVICE_Init(void)
 {
@@ -67,6 +93,7 @@ void MX_USB_DEVICE_Init(void)
   
   /* Init Device Library,Add Supported Class and Start the library*/
   USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
+  USBD_SetConnectionChange(&hUsbDeviceFS, stateChanged);
 
   USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC);
 
@@ -77,6 +104,11 @@ void MX_USB_DEVICE_Init(void)
   /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
   
   /* USER CODE END USB_DEVICE_Init_PostTreatment */
+}
+
+void MX_USB_DEVICE_DeInit(void)
+{
+  USBD_DeInit(&hUsbDeviceFS);
 }
 /**
   * @}

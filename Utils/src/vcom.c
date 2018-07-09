@@ -77,7 +77,7 @@ static void (*mCmdCallback)(sTerminalInterface_t *termIf, char *cmd) = 0;
  * @param  None
  * @retval None
  */
-void _Error_Handler(char * file, int line)
+void _Error_Handler(const char * file, int line)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
@@ -88,8 +88,8 @@ void _Error_Handler(char * file, int line)
 }
 
 /* Uart Handle */
-static UART_HandleTypeDef UartHandle;
-uint8_t vcomOK = 0;
+UART_HandleTypeDef UartHandle;
+volatile uint8_t vcomOK = 0;
 
 static sTerminalInterface_t mVcomInterface;
 /* Private function prototypes -----------------------------------------------*/
@@ -209,24 +209,6 @@ void vcom_DeInit(void)
 #endif
 }
 
-int _write(int file, char *data, int len)
-{
-   if(!vcomOK)
-      return -1;
-
-   if(HAL_UART_Transmit(&UartHandle,(uint8_t *)data, len, 300)  != HAL_OK)
-      return -1;
-
-   if(data[len -1] == '\n')
-   {
-      uint8_t CR = '\r';
-
-      if(HAL_UART_Transmit(&UartHandle, &CR, 1, 300)  != HAL_OK)
-         return -1;
-   }
-
-   return len;
-}
 
 /**
   * @brief UART MSP Initialization 
@@ -327,6 +309,13 @@ void vcom_handleByte(uint8_t byte)
 {
 	if(!mActive)
         return;
+
+    //echo typed character
+	printf("%c", (char)byte);
+    if (byte == '\r')
+    {
+    	printf("%c", '\n');
+    }
 
     if (byte == '\r') // || (byte == '\n'))
     {

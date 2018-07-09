@@ -245,7 +245,8 @@ typedef struct _USBD_HandleTypeDef
   USBD_ClassTypeDef       *pClass;
   void                    *pClassData;  
   void                    *pUserData;    
-  void                    *pData;    
+  void                    *pData;
+  void                    (*connection_change_cb)(uint8_t state);
 } USBD_HandleTypeDef;
 
 /**
