@@ -102,6 +102,8 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev, USBD_DescriptorsTypeDef *
     return USBD_FAIL; 
   }
   
+  pdev->connection_change_cb = 0;
+
   /* Unlink previous class*/
   if(pdev->pClass != NULL)
   {
@@ -134,6 +136,9 @@ USBD_StatusTypeDef USBD_DeInit(USBD_HandleTypeDef *pdev)
   /* Set Default State */
   pdev->dev_state  = USBD_STATE_DEFAULT;
   
+  if(pdev->connection_change_cb)
+	  pdev->connection_change_cb(pdev->dev_state);
+
   /* Free Class Resources */
   pdev->pClass->DeInit(pdev, pdev->dev_config);  
   
@@ -170,6 +175,19 @@ USBD_StatusTypeDef  USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeD
   }
   
   return status;
+}
+
+USBD_StatusTypeDef USBD_SetConnectionChange(USBD_HandleTypeDef *pdev, void  (*connection_change_cb)(uint8_t))
+{
+	/* Check whether the USB Host handle is valid */
+	if(pdev == NULL)
+	{
+		USBD_ErrLog("Invalid Device handle");
+		return USBD_FAIL;
+	}
+
+	pdev->connection_change_cb = connection_change_cb;
+	return USBD_OK;
 }
 
 /**
@@ -431,6 +449,9 @@ USBD_StatusTypeDef USBD_LL_Reset(USBD_HandleTypeDef  *pdev)
   pdev->ep_in[0].maxpacket = USB_MAX_EP0_SIZE;
   /* Upon Reset call user call back */
   pdev->dev_state = USBD_STATE_DEFAULT;
+
+  if(pdev->connection_change_cb)
+	  pdev->connection_change_cb(pdev->dev_state);
   
   if (pdev->pClassData) 
     pdev->pClass->DeInit(pdev, pdev->dev_config);  
@@ -465,6 +486,10 @@ USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef  *pdev)
 {
   pdev->dev_old_state =  pdev->dev_state;
   pdev->dev_state  = USBD_STATE_SUSPENDED;
+
+  if(pdev->connection_change_cb)
+	  pdev->connection_change_cb(pdev->dev_state);
+
   return USBD_OK;
 }
 
@@ -477,7 +502,11 @@ USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef  *pdev)
 
 USBD_StatusTypeDef USBD_LL_Resume(USBD_HandleTypeDef  *pdev)
 {
-  pdev->dev_state = pdev->dev_old_state;  
+  pdev->dev_state = pdev->dev_old_state;
+
+  if(pdev->connection_change_cb)
+	  pdev->connection_change_cb(pdev->dev_state);
+
   return USBD_OK;
 }
 
@@ -543,6 +572,10 @@ USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef  *pdev)
 {
   /* Free Class Resources */
   pdev->dev_state = USBD_STATE_DEFAULT;
+
+  if(pdev->connection_change_cb)
+	  pdev->connection_change_cb(pdev->dev_state);
+
   pdev->pClass->DeInit(pdev, pdev->dev_config);  
    
   return USBD_OK;

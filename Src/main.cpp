@@ -53,6 +53,7 @@
 #include "terminal.h"
 #include "vcom.h"
 
+
 /* Private variables ---------------------------------------------------------*/
 RTC_HandleTypeDef hrtc;
 
@@ -65,6 +66,12 @@ static void MX_RTC_Init(void);
 
 /* Private function prototypes -----------------------------------------------*/
 
+extern "C" {
+#include "usbd_cdc_if.h"
+
+extern UART_HandleTypeDef UartHandle;
+}
+
 int main(void)
 {
   /* MCU Configuration----------------------------------------------------------*/
@@ -76,10 +83,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  vcom_Init(terminal_handleCommand);
+  HAL_Delay(1000);
   MX_RTC_Init();
   MX_USB_DEVICE_Init();
 
-  vcom_Init(terminal_handleCommand);
   vcom_Start(VCOM_DEBUG);
 
   /* Infinite loop */
@@ -92,6 +100,7 @@ int main(void)
   }
 
 }
+
 
 /** System Clock Configuration
 */
@@ -195,6 +204,35 @@ static void MX_RTC_Init(void)
 
 }
 
+extern "C" {
+#include "usbd_cdc_if.h"
+
+extern uint8_t USBD_usbOK;
+extern uint8_t vcomOK;
+int _write(int file, char *data, int len)
+{
+   if(vcomOK)
+   {
+	   if(HAL_UART_Transmit(&UartHandle,(uint8_t *)data, len, 300)  != HAL_OK)
+		   return -1;
+
+	   if(data[len -1] == '\n')
+	   {
+		   uint8_t CR = '\r';
+
+		   if(HAL_UART_Transmit(&UartHandle, &CR, 1, 300)  != HAL_OK)
+			   return -1;
+	   }
+   }
+
+   if(USBD_usbOK)
+   {
+	   CDC_Transmit_FS((uint8_t *)data, len);
+   }
+
+   return len;
+}
+}
 /** Configure pins as 
         * Analog 
         * Input 
@@ -204,15 +242,17 @@ static void MX_RTC_Init(void)
 */
 static void MX_GPIO_Init(void)
 {
-
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -247,6 +287,7 @@ void assert_failed(uint8_t* file, uint32_t line)
 }
 
 #endif
+
 
 /**
   * @}

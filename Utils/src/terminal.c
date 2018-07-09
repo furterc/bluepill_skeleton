@@ -110,11 +110,27 @@ void reboot(sTerminalInterface_t *termIf, uint8_t argc, char **argv)
 const sTermEntry_t rebootEntry =
 { "reset", "Reboot the device", reboot };
 
+
+#include "usb_device.h"
+
 void jumpBoot(sTerminalInterface_t *termIf, uint8_t argc, char **argv)
 {
     termIf->printf("Boot mode...\n");
-    uint32_t system_memory = 0x1FFFF000;
 
+    MX_USB_DEVICE_DeInit();
+//    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11 | GPIO_PIN_12);
+//
+//    GPIO_InitTypeDef GPIO_InitStruct;
+//    GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_11;
+//    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+//    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+//    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12  | GPIO_PIN_11, GPIO_PIN_RESET);
+
+    HAL_Delay(1000);
+
+
+    termIf->printf("Bye\n");
     __HAL_RCC_USART1_FORCE_RESET();
     HAL_Delay(5);
     __HAL_RCC_USART1_RELEASE_RESET();
@@ -127,6 +143,7 @@ void jumpBoot(sTerminalInterface_t *termIf, uint8_t argc, char **argv)
     SysTick->VAL = 0;
 
     typedef void (*funcPtr)(void);
+    uint32_t system_memory = 0x1FFFF000;
     uint32_t jumpAddr = *(volatile uint32_t *)(system_memory + 0x04); /* reset ptr in vector table */
 
     funcPtr usrMain = (funcPtr) jumpAddr;
